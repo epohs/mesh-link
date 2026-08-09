@@ -1,0 +1,36 @@
+# The one project in this suite with a build backend, and the reason is the one
+# thing that makes it different: the other three are *run*, from a checkout,
+# with scripts/run_*.py putting the project root on sys.path — so nothing ever
+# installs them and none of them needs one. This is a library, imported by
+# another project's process, so it has to be installable into that project's
+# environment. Hence a backend here and nowhere else.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mesh-link"
+version = "0.1.0"
+description = "Control-socket protocol for asking mesh-collector to transmit."
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+authors = [
+    { name = "epohs" }
+]
+requires-python = ">=3.13"
+# Deliberately empty, and worth keeping that way. This package is the contract
+# between a process that owns a radio and a process that wants to use one; the
+# radio library belongs on the collector's side of that line, not in here. A
+# dependency added here is installed into every client too.
+dependencies = []
+
+# A table rather than an inline `urls = { ... }` spread over several lines: TOML
+# requires an inline table to be on one line, so the form the other three
+# projects inherited from RxOnly is not valid TOML. uv's parser tolerates it;
+# tomllib and hatchling do not.
+[project.urls]
+Homepage = "https://github.com/epohs/mesh-link"
+Repository = "https://github.com/epohs/mesh-link"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mesh_link"]
