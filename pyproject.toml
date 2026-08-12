@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mesh-link"
-version = "0.1.0"
+version = "0.2.0"
 description = "Control-socket protocol for asking mesh-collector to transmit."
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }

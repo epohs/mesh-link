@@ -107,11 +107,17 @@ class ControlClient:
     channel_index: int = 0,
     want_ack: Optional[bool] = None,
     reply_to: Optional[int] = None,
+    emoji: Optional[bool] = None,
   ) -> dict[str, Any]:
     """Ask the collector to transmit, and return what it did.
 
     The result carries the `message_id` the radio assigned and whether the row
     was archived, so a caller can find what it sent rather than guessing.
+
+    `emoji` asks for a reaction rather than a message and is only meaningful with
+    a `reply_to`. Not rejected here when it arrives without one, because the
+    collector is the one place that decides what reaches the radio and a second
+    opinion on the socket's client side would be a second place to keep in step.
     """
     request = SendTextRequest(
       text=text,
@@ -119,6 +125,7 @@ class ControlClient:
       channel_index=channel_index,
       want_ack=want_ack,
       reply_to=reply_to,
+      emoji=emoji,
     )
     return self._exchange(request)
 

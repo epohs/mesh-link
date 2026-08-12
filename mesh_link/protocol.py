@@ -88,6 +88,12 @@ class SendTextRequest:
   `want_ack` is None by default and resolved by `resolve_want_ack()` rather than
   here, so the default can depend on the destination: acks are worth having for
   a direct message and are wasted airtime on a broadcast.
+
+  `emoji` asks for the message to go out as a reaction rather than as a message,
+  which is the `emoji` flag on meshtastic's `Data` and only means anything
+  alongside a `reply_to` — a reaction to nothing is not a thing the protocol can
+  express. Left None by a caller that has no opinion, which is the same as false;
+  the collector is what turns it into the 0 or 1 it records.
   """
 
   text: str
@@ -95,6 +101,7 @@ class SendTextRequest:
   channel_index: int = 0
   want_ack: Optional[bool] = None
   reply_to: Optional[int] = None
+  emoji: Optional[bool] = None
 
 
   @property
@@ -108,6 +115,14 @@ class SendTextRequest:
     return self.is_direct
 
 
+  # `emoji` joined this frame without a PROTOCOL_VERSION bump, which is allowed
+  # because `parse_request()` reads named keys and ignores the rest: a collector
+  # that predates the field drops it and transmits an ordinary reply, and a
+  # collector that has it reads None from a client that never sends it. A bump
+  # would have been the breaking change, since the version is checked with `!=`
+  # in both directions and every pairing in the suite would have had to move at
+  # once. Adding a *required* field, or changing what an existing one means, is
+  # what would earn a bump.
   def to_wire(self) -> dict[str, Any]:
     return {
       "v": PROTOCOL_VERSION,
@@ -117,6 +132,7 @@ class SendTextRequest:
       "channel_index": self.channel_index,
       "want_ack": self.want_ack,
       "reply_to": self.reply_to,
+      "emoji": self.emoji,
     }
 
 
@@ -317,4 +333,5 @@ def parse_request(payload: dict[str, Any]) -> SendTextRequest | StatusRequest:
     channel_index=validate_channel_index(payload.get("channel_index", 0)),
     want_ack=_validate_optional_bool(payload.get("want_ack"), "want_ack"),
     reply_to=_validate_optional_packet_id(payload.get("reply_to"), "reply_to"),
+    emoji=_validate_optional_bool(payload.get("emoji"), "emoji"),
   )
