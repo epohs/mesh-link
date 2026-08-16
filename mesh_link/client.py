@@ -31,7 +31,10 @@ from mesh_link.socket_path import resolve_socket_path
 DEFAULT_TIMEOUT = 35.0
 
 # Local to the client: what went wrong on this side, before or after the server
-# had a say.
+# had a say. Exported from the package alongside protocol.py's codes, and for the
+# same reason — a caller branching on `ControlError.code` meets these two exactly
+# as often as it meets the server's, and with nothing to import it had no choice
+# but to spell them as literals.
 ERR_UNREACHABLE = "unreachable"
 ERR_BAD_RESPONSE = "bad_response"
 

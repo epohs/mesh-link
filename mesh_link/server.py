@@ -12,6 +12,7 @@ from typing import Any, Optional
 
 from mesh_link.protocol import (
   ERR_BUSY,
+  ERR_FRAME_TOO_LARGE,
   ERR_INTERNAL,
   ERR_TIMEOUT,
   MAX_FRAME_BYTES,
@@ -430,7 +431,7 @@ def _read_frame(conn: socket.socket) -> Optional[bytes]:
 
     if len(buffer) > MAX_FRAME_BYTES:
       raise ProtocolError(
-        "frame_too_large",
+        ERR_FRAME_TOO_LARGE,
         f"No newline within {MAX_FRAME_BYTES} bytes; giving up on this frame.",
       )
 

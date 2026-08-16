@@ -29,6 +29,8 @@ the collector's business, and it stays there.
 """
 
 from mesh_link.client import (
+  ERR_BAD_RESPONSE,
+  ERR_UNREACHABLE,
   ControlClient,
   ControlError,
 )
@@ -70,6 +72,7 @@ __all__ = [
   "ControlServer",
   "ControlSocketBusy",
   "ControlSocketPathUnusable",
+  "ERR_BAD_RESPONSE",
   "ERR_BUSY",
   "ERR_CHANNEL_NOT_TRACKED",
   "ERR_FRAME_TOO_LARGE",
@@ -78,6 +81,7 @@ __all__ = [
   "ERR_SEND_FAILED",
   "ERR_TIMEOUT",
   "ERR_TX_DISABLED",
+  "ERR_UNREACHABLE",
   "ERR_UNSUPPORTED_VERSION",
   "MAX_CHANNEL_INDEX",
   "MAX_TEXT_BYTES",
