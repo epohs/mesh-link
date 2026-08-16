@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import queue
 import socket
 import stat
 import threading
+import time
 
 from pathlib import Path
 from typing import Any, Optional
@@ -65,6 +67,12 @@ LISTEN_BACKLOG = 16
 # How long a connection thread will wait on a client that has opened a socket
 # and then said nothing.
 CLIENT_READ_TIMEOUT = 30.0
+
+# How long the accept loop pauses after an accept() that failed for a reason it
+# intends to survive. Out of descriptors is the case that matters: accept() will
+# fail again immediately and forever until something else in the process lets a
+# descriptor go, so without a pause the loop is a hot spin logging at full speed.
+ACCEPT_RETRY_DELAY = 0.5
 
 
 
@@ -304,11 +312,20 @@ class ControlServer:
         conn, _ = sock.accept()
       except socket.timeout:
         continue
-      except OSError:
-        # Expected when stop() closes the listener out from under accept().
-        if self._running:
-          self.log.exception("Control socket accept failed")
-        return
+      except OSError as e:
+        if _is_fatal_accept_error(e, self._running):
+          # Expected when stop() closes the listener out from under accept().
+          if self._running:
+            self.log.exception("Control socket accept failed")
+          return
+
+        # Everything else is a condition the process can come back from, and
+        # returning here would leave a bound socket that accepts nothing: meta
+        # still advertises accepts_transmit, every client connects and then
+        # hangs until its own timeout, and the only trace is one ERROR line.
+        self.log.exception("Control socket accept failed; retrying")
+        time.sleep(ACCEPT_RETRY_DELAY)
+        continue
       except Exception:
         self.log.exception("Unexpected error accepting on the control socket")
         continue
@@ -401,6 +418,28 @@ class ControlServer:
       )
 
     return pending._await_reply(self.request_timeout)
+
+
+
+
+def _is_fatal_accept_error(e: OSError, running: bool) -> bool:
+  """Should an OSError out of accept() end the accept loop for good?
+
+  Only two things should: stop() has already asked the loop to finish, or the
+  listening descriptor is gone (EBADF), which is what stop() closing the socket
+  out from under a blocked accept() actually looks like from in here.
+
+  Everything else is transient and the loop's job is to outlive it. EMFILE and
+  ENFILE mean the process or the machine is out of descriptors, which clears the
+  moment something closes one; ECONNABORTED means a client hung up between SYN
+  and accept, which is a client's business and not ours. Treating those as fatal
+  is how a Pi that has been up for months stops answering the send button and
+  says nothing about it.
+
+  Kept apart from the loop as a plain function because it is the only decision in
+  there worth pinning, and this way pinning it needs no socket and no thread.
+  """
+  return not running or e.errno == errno.EBADF
 
 
 
